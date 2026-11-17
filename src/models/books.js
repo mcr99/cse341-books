@@ -14,4 +14,51 @@ const getBookById = async (bookId) => {
   return book;
 };
 
-export { getAllBooks, getBookById };
+const authorExists = async (authorId) => {
+  const db = getDb();
+  const collection = db.collection('authors');
+  const author = await collection.findOne({ id: authorId });
+
+  return author !== null;
+};
+
+const createBook = async (book) => {
+  const db = getDb();
+  const collection = db.collection('books');
+
+  const exists = await authorExists(book.authorId);
+
+  if (!exists) {
+    throw new Error('Author does not exist');
+  }
+
+  await collection.insertOne(book);
+
+  return book;
+};
+
+const updateBook = async (id, book) => {
+  const db = getDb();
+  const collection = db.collection('books');
+
+  const exists = await authorExists(book.authorId);
+
+  if (!exists) {
+    throw new Error('Author does not exist');
+  }
+
+  await collection.updateOne({ id }, { $set: book });
+
+  return { id, ...book };
+};
+
+const deleteBook = async (id) => {
+  const db = getDb();
+  const collection = db.collection('books');
+  const result = await collection.deleteOne({ id });
+
+  return result;
+};
+
+
+export { getAllBooks, getBookById, authorExists, createBook, updateBook, deleteBook };

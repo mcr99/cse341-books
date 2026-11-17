@@ -1,4 +1,4 @@
-import { getAllBooks, getBookById  } from '../models/books.js';
+import { createBook, deleteBook, getAllBooks, getBookById, updateBook  } from '../models/books.js';
 
 
 const getBooksHandler = async (req, res) => {
@@ -28,4 +28,93 @@ const getBookByIdHandler = async (req, res) => {
   }
 };
 
-export { getBooksHandler, getBookByIdHandler };
+const createBookHandler = async (req, res) => {
+  const { id, authorId, title, publicationDate } = req.body;
+
+  if (!id || !authorId || !title || !publicationDate) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  try {
+    const existingBook = await getBookById(id);
+
+    if (existingBook) {
+      return res.status(400).json({ message: 'Book ID already exists' });
+    }
+
+    const book = await createBook({
+      id,
+      authorId,
+      title,
+      publicationDate
+    });
+
+    return res.status(201).json(book);
+  } catch (error) {
+    console.error('POST /books failed:', error.message);
+
+    if (error.message === 'Author does not exist') {
+      return res.status(400).json({ message: error.message });
+    }
+
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+const updateBookHandler = async (req, res) => {
+  const requestedId = req.params.id;
+  const { authorId, title, publicationDate } = req.body;
+
+  if (!authorId || !title || !publicationDate) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  try {
+    const existingBook = await getBookById(requestedId);
+
+    if (!existingBook) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    const updatedBook = await updateBook(requestedId, {
+      authorId,
+      title,
+      publicationDate
+    });
+
+    return res.status(200).json(updatedBook);
+  } catch (error) {
+    console.error('PUT /books/:id failed:', error.message);
+
+    if (error.message === 'Author does not exist') {
+      return res.status(400).json({ message: error.message });
+    }
+
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+const deleteBookHandler = async (req, res) => {
+  const requestedId = req.params.id;
+
+  try {
+    const existingBook = await getBookById(requestedId);
+
+    if (!existingBook) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    await deleteBook(requestedId);
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error('DELETE /books/:id failed:', error.message);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
+export { getBooksHandler, getBookByIdHandler, createBookHandler, updateBookHandler, deleteBookHandler };
